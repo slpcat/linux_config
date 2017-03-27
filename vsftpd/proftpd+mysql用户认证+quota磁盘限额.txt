@@ -1,0 +1,210 @@
+proftpd+mysql用户认证+quota磁盘限额  
+
+整理编辑：mars (mars_diy@21cn.com)  
+
+网上关于proftpd的安装文章实在是不少，我只是稍微整理了一下，并且使用了新的 quota磁盘限额模块  
+
+由于proftpd最新版1.2.8目前还是RC版，加上有些设置不能通用， 所以在这里还是使用1.2.7版  
+
+首先下载源码  
+proftpd1.2.7:  
+ftp://ftp.proftpd.org/distrib/sourc...d-1.2.7.tar.bz2  
+
+mod_quotatab-1.2.4 (1.2.5 版本的mod_quotatab是用在最新的1.2.8rc1上的)  
+http://www.castaglia.org/proftpd/mo...ab-1.2.4.tar.gz  
+
+假定你的机器上已经安装好了mysql  
+开始编译安装  
+将proftpd的源码包解压缩到某临时目录下：  
+localhost proftpd # tar -jxvf proftpd-1.2.7.tar.bz2  
+解压缩 mod_quotatab-1.2.4  
+localhost proftpd # tar -zxvf proftpd-mod-quotatab-1.2.4.tar.gz  
+进入 mod_quotatab 目录  
+localhost proftpd # cd mod_quotatab  
+把mod_quotatab中的文件拷贝到 proftpd 中的modules 目录中  
+localhost mod_quotatab # cp * ../proftpd-1.2.7/modules  
+
+在开始运行configure之前，我们要先改动一个文件  
+进入 proftpd-1.2.7/contrib 目录  
+localhost mod_quotatab # cd ../proftpd-1.2.7/contrib  
+修改 mod_sql_mysql.c  
+localhost contrib # vi mod_sql_mysql.c  
+找到#include <mysql/mysql.h>; 把他该为你实际路径  
+如果你的mysql 安装在 /usr/local/mysql 下，就把它修改为#include </usr/local/mysql/include/mysql/mysql.h>;r  
+然后  
+localhost contrib # cd ..  
+localhost proftpd-1.2.7 # cd ..  
+localhost proftpd #./configure --prefix=DIR --with-modules=mod_sql:mod_sql_mysql:mod_quotatab:mod_quotatab_sql --with-includes=DIR --with-libraries=DIR  
+需要修改的三个地方  
+--prefix=DIR 你要安装到哪里  
+--with-includes=DIR mysql 的includes 目录  
+--with-libraries=DIR mysql 的lib 目录  
+然后  
+make  
+make install 完成安装  
+
+接下来，进入你安装好的proftpd目录 ，修改etc/proftpd.conf 文件开始配置  
+基本配置我就不多说了，网上这类文章有很多，实在不会的话，自己找找就是了，这里主要介绍如何配置mysql用户认证和磁盘限额  
+
+mysql 用户认证部分：  
+在proftpd.conf中加入以下内容  
+
+#设置MySQL认证：  
+#数据库联接的信息，DatabaseName是数据库名， HostName是主机名，  
+#Port是端口号，UserName是连接数据库的用户名，Password是密码。  
+SQLConnectInfo DatabaseName@HostName:port UserName Password  
+
+#数据库认证的类型：  
+SQLAuthTypes Backend Plaintext  
+
+#指定用来做用户认证的表的有关信息。("FTPUSERS"和"FTPGRPS"是数据表名字，等一会而在下面建立)  
+SQLUserInfo FTPUSERS userid passwd uid gid homedir shell  
+
+SQLGroupInfo FTPGRPS groupname gid members  
+
+#设置如果shell为空时允许用户登录：  
+RequireValidShell off  
+
+#数据库的鉴别  
+SQLAuthenticate users groups usersetfast groupsetfast  
+
+#如果home目录不存在，则系统会为根据它的home项新建一个目录：  
+SQLHomedirOnDemand on  
+
+然后在这个数据库中建立一个用户表FTPUSERS，这个表是必须的：  
+
+use FTP;  
+create table FTPUSERS (  
+userid TEXT NOT NULL,  
+passwd TEXT NOT NULL,  
+uid INT NOT NULL,  
+gid INT NOT NULL,  
+home TEXT,  
+shell TEXT  
+);  
+此表格是为了用户认证所需要的，其中userid、passwd是必不可少的，userid是用做FTP服务的用户名；passwd是指此用户的密码；uid是系统用户的ID，也就是所映射的系统用户；gid是所属系统组的ID；home是该用户所在的HOME目录；shell可以为该用户指定相应的shell。当然你可以建立更多的字段，例如：用来记录用户登录次数的count，或者是日期的date，如果你对配置熟悉了之后，你可以根据自己的喜欢添加更多的功能。在此就不多讲。  
+3、如果你想需要所有的功能，你还可以添加另外一个需要的表：FTPGRPS，也就是确定组的表格，当然也可以不用，这里讲一个它的格式：  
+create table FTPGRPS (  
+grpname TEXT NOT NULL,  
+gid SMALLINT NOT NULL,  
+members TEXT NOT NULL,  
+);  
+其中grpname是组的名称，gid是系统组的ID，members是组的成员。注意：多成员，他们之间要用逗号隔开，不能使用空格。  
+
+4、为空表格插入记录：  
+INSERT INTO FTPUSERS (userid, passwd, uid, gid, home, shell)  
+valueS ('user1', '999999', '1000', '1000', '/home/FTP/user1', '' );  
+
+按此格式你可以插入这每一个用户添加一个记录。  
+如果你要想应用到更多的功能，且建立了组的表格，你也要为此添加记录，不过一定要注意在members的字段多个成员一定要用逗号隔开。  
+
+INSERT INTO FTPGRPS VALUES ('FTPGRPS', 1000, 'FTPUSR');  
+四、为FTP用户建立相应的系统用户。  
+在本例中，只整个FTP服务只提供一个有效的系统用户FTPUSR和组FTPGRP，当然你也可以设置多个系统用户。但出于安全的考虑，我只设一个，用他来启动FTP daemon，并把所有的FTP用户映射过这个用户。  
+
+先建立FTPGRP组：  
+groupadd -g 1000 -r FTPGRP  
+建立FTPUSR用户：  
+adduser -u 1000 -g 1000 -d /home/FTP -s /bin/bash -r FTPUSR  
+
+为FTPUSR建立HOME，把所有的FTP user 活动空间全放在此目录下：  
+mkdir /home/FTP  
+chown FTPUSR /home/FTP  
+chgrp FTPGRP /home/FTP  
+
+到这里MYSQL认证部分就算基本配置好了，接下来是磁盘限额部分  
+
+首先，还是编辑proftpd文件  
+
+#磁盘限额部分  
+QuotaDirectoryTally on  
+
+#磁盘限额单位 b"|"Kb"|"Mb"|"Gb"  
+QuotaDisplayUnits "Kb"  
+
+QuotaEngine on  
+
+#磁盘限额日志记录  
+QuotaLog "你的LOG路径"  
+
+# 打开磁盘限额信息，当登陆FTP帐户后，使用命令 "quote SITE QUOTA" 后可显示当前用户的磁盘限额  
+QuotaShowQuotas on  
+
+#以下是SQL调用语句，不用修改直接拷贝过去  
+
+SQLNamedQuery get-quota-limit SELECT "name, quota_type, per_session, limit_type, bytes_in_avail, \  
+bytes_out_avail, bytes_xfer_avail, files_in_avail, files_out_avail, files_xfer_avail FROM quotalimits \  
+WHERE name = '%{0}' AND quota_type = '%{1}'"  
+
+SQLNamedQuery get-quota-tally SELECT "name, quota_type, bytes_in_used, bytes_out_used, \  
+bytes_xfer_used, files_in_used, files_out_used, files_xfer_used FROM quotatallies \  
+WHERE name = '%{0}' AND quota_type = '%{1}'"  
+
+SQLNamedQuery update-quota-tally UPDATE "bytes_in_used = bytes_in_used + %{0}, \  
+bytes_out_used = bytes_out_used + %{1}, bytes_xfer_used = bytes_xfer_used + %{2}, \  
+files_in_used = files_in_used + %{3}, files_out_used = files_out_used + %{4}, \  
+files_xfer_used = files_xfer_used + %{5} \  
+WHERE name = '%{6}' AND quota_type = '%{7}'" quotatallies  
+
+SQLNamedQuery insert-quota-tally INSERT "%{0}, %{1}, %{2}, %{3}, %{4}, %{5}, %{6}, %{7}" quotatallies  
+
+QuotaLimitTable sql:/get-quota-limit  
+QuotaTallyTable sql:/get-quota-tally/update-quota-tally/insert-quota-tally  
+
+然后建立mysql 数据表  
+CREATE TABLE quotalimits (  
+name VARCHAR(30),  
+quota_type ENUM("user", "group", "class", "all") NOT NULL,  
+per_session ENUM("false", "true") NOT NULL,  
+limit_type ENUM("soft", "hard") NOT NULL,  
+bytes_in_avail FLOAT NOT NULL,  
+bytes_out_avail FLOAT NOT NULL,  
+bytes_xfer_avail FLOAT NOT NULL,  
+files_in_avail INT UNSIGNED NOT NULL,  
+files_out_avail INT UNSIGNED NOT NULL,  
+files_xfer_avail INT UNSIGNED NOT NULL  
+);  
+
+CREATE TABLE quotatallies (  
+name VARCHAR(30) NOT NULL,  
+quota_type ENUM("user", "group", "class", "all") NOT NULL,  
+bytes_in_used FLOAT NOT NULL,  
+bytes_out_used FLOAT NOT NULL,  
+bytes_xfer_used FLOAT NOT NULL,  
+files_in_used INT UNSIGNED NOT NULL,  
+files_out_used INT UNSIGNED NOT NULL,  
+files_xfer_used INT UNSIGNED NOT NULL  
+);  
+
+说明一下，quotatallies表不需要作修改，它记录了用户当前的磁盘使用情况，由程序自动记录  
+要注意的是quotalimits 表中一些字段的含意  
+quota_type 磁盘限额的鉴别,可以设置单各用户，也可以设置一各组中的全部用户，还可以设置全部用户  
+bytes_in_avail 上传最大字节数，就是FTP用户空间容量 (设置个字段的时候是以byte(字节)为单位，如果要限额在10M，那就是10240000,下面也一样)  
+bytes_out_avail 下载最大字节数，需要注意的是，这个字段中记录的是用户总共能从服务器上下载多少数据，数据是累计的。  
+bytes_xfer_avail 总共可传输的文件的最大字节数(上传和下载流量)需要注意的是，这个字段中记录的是用户总共能传输文件的最大字节数，数据是累计的。  
+files_in_avail INT 总共能上传文件的数目  
+files_out_avail INT 能从服务器上下载文件的总数目  
+files_xfer_avail INT 总共可传输文件的数目(上传和下载)  
+
+好了，开始使用磁盘限额，我们要将上面建立的user1帐号给予10M空间，最多能上传500个文件到服务器上，文件传输流量为20M，只能传输10个文件。只要在MYSQL中  
+插入  
+INSERT INTO `quotalimits` ( `name` , `quota_type` , `per_session` , `limit_type` , `bytes_in_avail` , `bytes_out_avail` , `bytes_xfer_avail` , `files_in_avail` , `files_out_avail` , `files_xfer_avail` )  
+VALUES ('user1', 'user', 'false', 'soft', '10240000', '0', '2048000', '500', '0', '10');  
+就可以了，不需要设置的部分用0代替就可以了  
+现在运行proftpd，登陆到user1 ，使用quote SITE QUOTA 就会显示user1用户的磁盘使用情况  
+
+ftp>; quote SITE QUOTA  
+200-The current quota for this session are [current/limit]:  
+Name: user1  
+Quota Type: User  
+Per Session: False  
+Limit Type: Soft  
+Uploaded Kb: 0.00/10000.00  
+Downloaded Kb: unlimited  
+Transferred Kb: 0.00/2000.00  
+Uploaded files: 0/500  
+Downloaded files: unlimited  
+Transferred files: 0/10  
+200 Please contact root@localhost if these entries are inaccurate  
+
+OK,安装完毕 

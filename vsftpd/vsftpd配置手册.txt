@@ -1,0 +1,493 @@
+作者: 木頭    来源: PHPChina 开源社区门户
+1、vsftpd配置参数详细整理 
+#接受匿名用户 
+anonymous_enable=YES 
+#匿名用户login时不询问口令 
+no_anon_password=YES 
+#匿名用户主目录 
+anon_root=(none) 
+#接受本地用户 
+local_enable=YES 
+#本地用户主目录 
+local_root=(none) 
+#如果匿名用户需要密码,那么使用banned_email_file里面的电子邮件地址的用户不能登录 
+deny_email_enable=YES 
+#仅在没有pam验证版本时有用,是否检查用户有一个有效的shell来登录 
+check_shell=YES 
+#若启用此选项,userlist_deny选项才被启动 
+userlist_enable=YES 
+#若为YES,则userlist_file中的用户将不能登录,为NO则只有userlist_file的用户可以登录 
+userlist_deny=NO 
+#如果和chroot_local_user一起开启,那么用户锁定的目录来自/etc/passwd每个用户指定的目录(这个不是很清楚,很哪位熟悉的指点一下) 
+passwd_chroot_enable=NO 
+#定义匿名登入的使用者名称。默认值为ftp。 
+ftp_username=FTP 
+
+#################用户权限控制############### 
+#可以上传(全局控制). 
+write_enable=YES 
+#本地用户上传文件的umask 
+local_umask=022 
+#上传文件的权限配合umask使用 
+#file_open_mode=0666 
+#匿名用户可以上传 
+anon_upload_enable=NO 
+#匿名用户可以建目录 
+anon_mkdir_write_enable=NO 
+匿名用户其它的写权利(更改权限?) 
+anon_other_write_enable=NO 
+如果设为YES，匿名登入者会被允许下载可阅读的档案。默认值为YES。 
+anon_world_readable_only=YES 
+#如果开启,那么所有非匿名登陆的用户名都会被切换成guest_username指定的用户名 
+#guest_enable=NO 
+所有匿名上传的文件的所属用户将会被更改成chown_username 
+chown_uploads=YES 
+匿名上传文件所属用户名 
+chown_username=lightwiter 
+#如果启动这项功能，则所有列在chroot_list_file之中的使用者不能更改根目录 
+chroot_list_enable=YES 
+#允许使用"async ABOR"命令,一般不用,容易出问题 
+async_abor_enable=YES 
+管控是否可用ASCII 模式上传。默认值为NO。 
+ascii_upload_enable=YES 
+#管控是否可用ASCII 模式下载。默认值为NO。 
+ascii_download_enable=YES 
+#这个选项必须指定一个空的数据夹且任何登入者都不能有写入的权限，当vsftpd 不需要file system 的权限时，就会将使用者限制在此数据夹中。默认值为/usr/share/empty 
+secure_chroot_dir=/usr/share/empty 
+
+###################超时设置################## 
+#空闲连接超时 
+idle_session_timeout=600 
+#数据传输超时 
+data_connection_timeout=120 
+#PAVS请求超时 
+ACCEPT_TIMEOUT=60 
+#PROT模式连接超时 
+connect_timeout=60 
+
+################服务器功能选项############### 
+#开启日记功能 
+xferlog_enable=YES 
+#使用标准格式 
+xferlog_std_format=YES 
+#当xferlog_std_format关闭且本选项开启时,记录所有ftp请求和回复,当调试比较有用. 
+#log_ftp_protocol=NO 
+#允许使用pasv模式 
+pasv_enable=YES 
+#关闭安全检查,小心呀. 
+#pasv_promiscuous+NO 
+#允许使用port模式 
+#port_enable=YES 
+#关闭安全检查 
+#prot_promiscuous 
+#开启tcp_wrappers支持 
+tcp_wrappers=YES 
+#定义PAM 所使用的名称，预设为vsftpd。 
+pam_service_name=vsftpd 
+#当服务器运行于最底层时使用的用户名 
+nopriv_user=nobody 
+#使vsftpd在pasv命令回复时跳转到指定的IP地址.(服务器联接跳转?) 
+pasv_address=(none) 
+
+#################服务器性能选项############## 
+#是否能使用ls -R命令以防止浪费大量的服务器资源 
+#ls_recurse_enable=YES 
+#是否使用单进程模式 
+#one_process_model 
+#绑定到listen_port指定的端口,既然都绑定了也就是每时都开着的,就是那个什么standalone模式 
+listen=YES 
+#当使用者登入后使用ls -al 之类的指令查询该档案的管理权时，预设会出现拥有者的UID，而不是该档案拥有者的名称。若是希望出现拥有者的名称，则将此功能开启。 
+text_userdb_names=NO 
+#显示目录清单时是用本地时间还是GMT时间,可以通过mdtm命令来达到一样的效果 
+use_localtime=NO 
+#测试平台优化 
+#use_sendfile=YES 
+
+################信息类设置################ 
+#login时显示欢迎信息.如果设置了banner_file则此设置无效 
+ftpd_banner=欢迎来到湖南三辰Fake-Ta FTP 网站. 
+#允许为目录配置显示信息,显示每个目录下面的message_file文件的内容 
+dirmessage_enable=YES 
+#显示会话状态信息,关! 
+#setproctitle_enable=YES 
+
+############## 文件定义 ################## 
+#定义不能更改用户主目录的文件 
+chroot_list_file=/etc/vsftpd/vsftpd.chroot_list 
+#定义限制/允许用户登录的文件 
+userlist_file=/etc/vsftpd/vsftpd.user_list 
+#定义登录信息文件的位置 
+banner_file=/etc/vsftpd/banner 
+#禁止使用的匿名用户登陆时作为密码的电子邮件地址 
+banned_email_file=/etc/vsftpd.banned_emails 
+#日志文件位置 
+xferlog_file=/var/log/vsftpd.log 
+#目录信息文件 
+message_file=.message 
+
+##############目录定义 ################# 
+#定义用户配置文件的目录 
+user_config_dir=/etc/vsftpd/userconf 
+#定义本地用户登陆的根目录,注意定义根目录可以是相对路径也可以是绝对路径.相对路径是针对用户家目录来说的. 
+local_root=webdisk #此项设置每个用户登陆后其根目录为/home/username/webdisk 
+#匿名用户登陆后的根目录 
+anon_root=/var/ftp 
+
+#############用户连接选项################# 
+#可接受的最大client数目 
+max_clients=100 
+#每个ip的最大client数目 
+max_per_ip=5 
+#使用标准的20端口来连接ftp 
+connect_from_port_20=YES 
+#绑定到某个IP,其它IP不能访问 
+listen_address=192.168.0.2 
+#绑定到某个端口 
+#listen_port=2121 
+#数据传输端口 
+#ftp_data_port=2020 
+#pasv连接模式时可以使用port 范围的上界，0 表示任意。默认值为0。 
+pasv_max_port=0 
+#pasv连接模式时可以使用port 范围的下界，0 表示任意。默认值为0。 
+pasv_min_port=0 
+
+##############数据传输选项################# 
+#匿名用户的传输比率(b/s) 
+anon_max_rate=51200 
+#本地用户的传输比率(b/s) 
+local_max_rate=5120000 
+
+######################################## 
+别外,如果要对每个用户进行单独的控制,只需要在user_config_dir中建立username文件,内容为数据传输和用户权利里面设置个人的合适的选项,用户自定义文件同样适合用pam支持的虚拟用户
+附: FTP 数字代码的意义 
+110 重新启动标记应答。 
+120 服务在多久时间内ready。 
+125 数据链路埠开启，准备传送。 
+150 文件状态正常，开启数据连接端口。 
+200 命令执行成功。 
+202 命令执行失败。 
+211 系统状态或是系统求助响应。 
+212 目录的状态。 
+213 文件的状态。 
+214 求助的讯息。 
+215 名称系统类型。 
+220 新的联机服务ready。 
+221 服务的控制连接埠关闭，可以注销。 
+225 数据连结开启，但无传输动作。 
+226 关闭数据连接端口，请求的文件操作成功。 
+227 进入passive mode。 
+230 使用者登入。 
+250 请求的文件操作完成。 
+257 显示目前的路径名称。 
+331 用户名称正确，需要密码。 
+332 登入时需要账号信息。 
+350 请求的操作需要进一部的命令。 
+421 无法提供服务，关闭控制连结。 
+425 无法开启数据链路。 
+426 关闭联机，终止传输。 
+450 请求的操作未执行。 
+451 命令终止：有本地的错误。 
+452 未执行命令：磁盘空间不足。 
+500 格式错误，无法识别命令。 
+501 参数语法错误。 
+502 命令执行失败。 
+503 命令顺序错误。 
+504 命令所接的参数不正确。 
+530 未登入。 
+532 储存文件需要账户登入。 
+550 未执行请求的操作。 
+551 请求的命令终止，类型未知。 
+552 请求的文件终止，储存位溢出。 
+553 未执行请求的的命令，名称不正确。 
+
+2、VSFTPD官方资料翻译版（不完整版）---摘自中国Linux公社
+翻译了部分VSFTPD的官方资料。
+有些知道是什么意思，但难于翻译。有些涉及专业的知识，我自己也不懂，只好按字面翻译。有些我自己看不懂，只好尽量翻译。
+如果看了其中一部分觉得糊涂，请参阅官方文挡。
+安装篇 
+=============== 
+这个文件详细介绍了如何从VSFTPD的.tar.gz分发包开始，建立和安装并运行VSFTPD。 
+
+1）建立VSFTPD 
+先进入解压.tar.gz文件后产生的目录内。如下： 
+cd vsftpd-2.0.1 
+
+编辑"builddefs.h"以操作compile-time设定。（tcp_wrappers build,等）
+输入make,回车（如果它不工作请发邮件通知我 . 
+这将产生一个二进制文件，你可以验证一下。如下： 
+[chris@localhost vsftpd]$ ls -l vsftpd 
+-rwxrwxr-x 1 chris chris 61748 Sep 27 00:26 vsftpd 
+
+2）满足VSFTPD安装所需的一些条件 
+VSFTPD默认设置需要一个"nobody"用户，如果这个用户不存在，那么添加它。如下： 
+[root@localhost root]# useradd nobody 
+useradd: user nobody exists 
+
+VSFTPD默认设置需要一个空目录：/usr/share/empty.增加这个目录，如果它还不存在的话。如下： 
+[root@localhost root]# mkdir /usr/share/empty/ 
+mkdir: cannot create directory `/usr/share/empty': File exists 
+
+如果容许匿名用户（anonymous)，那么你将需要一个"ftp"用户和其home目录（这个home目录不属于“ftp”用户，而且“ftp"用户也对其没有写权限）在你的系统中存在。
+以下命令用来创建一个"ftp"用户，如果它还不存在的话。 
+[root@localhost root]# mkdir /var/ftp/ 
+[root@localhost root]# useradd -d /var/ftp ftp 
+
+（即使你的"ftp"用户已经存在，完成以下这两步也是很有好处的：） 
+[root@localhost root]# chown root.root /var/ftp 
+[root@localhost root]# chmod og-w /var/ftp 
+
+3）安装VSFTPD的配置、执行和帮助文件。
+输入"make install"后会将二进制文件和帮助文件拷贝到适当的目录。
+你也可以手工拷贝这些文件： 
+cp vsftpd /usr/local/sbin/vsftpd 
+cp vsftpd.conf.5 /usr/local/man/man5 
+cp vsftpd.8 /usr/local/man/man8 
+
+"make install"不会拷贝默认的配置文件，所以建议你手工拷贝： 
+cp vsftpd.conf /etc 
+daidong注：根据你系统版本的不同，也可能是 cp vsftpd.conf /etc/vsftpd 
+
+4)测试 （无inetd影响） 
+VSFTPD能运行在独立模式（standalone)或者通过inetd(xinetd)来启动。
+你能通过inetd来运行vsftpd以更好地控制它。但我们在首次运行时不这么做，以便检查系统是否现在配置正常。
+编辑/etc/vsftpd.conf（daidong注：也可能是/etc/vsftpd/vsftpd.conf)，并在最下面加入以下这一行： 
+listen=YES 
+
+这将告诉VSFTPD不要从inetd启动。 
+OK，现在试着启动FTP。
+以ROOT登录。
+确定你没有运行其他FTP服务（否则VSFTPD不能占用FTP所需的21端口）。
+运行那个二进制文件，如下： 
+[root@localhost root]# /usr/local/sbin/vsftpd & 
+[1] 2104 
+
+如果一切正常，那么你将连上FTP服务器，如下： 
+[chris@localhost chris]$ ftp localhost 
+Connected to localhost (127.0.0.1). 
+220 (vsFTPd 1.1.1) 
+Name (localhost:chris): ftp 
+331 Please specify the password. 
+Password: 
+230 Login successful. Have fun. 
+Remote system type is UNIX. 
+Using binary mode to transfer files. 
+ftp> ls 
+227 Entering Passive Mode (127,0,0,1,229,133) 
+150 Here comes the directory listing. 
+d--x--x--x 2 0 0 4096 Jan 14 2002 bin 
+d--x--x--x 2 0 0 4096 Apr 21 20:52 etc 
+drwxr-xr-x 2 0 0 4096 Apr 21 20:52 lib 
+drwxr-sr-x 2 0 50 4096 Jul 26 22:58 pub 
+226 Directory send OK. 
+ftp> 
+
+5）从inetd或者类似方式启动（官方推荐使用standalone方式）
+你也许想通过inetd或者类似方式启动VSFTPD，因为这能给你更多的感受。例如xinetd就有很多的设置。
+（注意：VSFTPD的内在机制屏蔽了xinetd的大多数的有用的设置）。
+如果使用标准的"inetd",你需要编辑/etc/inetd.conf,在其中加入以下一行： 
+ftp stream tcp nowait root /usr/sbin/tcpd /usr/local/sbin/vsftpd 
+
+（确定你删除或者注释掉一些已存在的FTP服务配置行。如果你没有安装tcp_wrappers,或者不想使用它们，那么请去掉/usr/sbin/tcpd part). 
+
+inetd需要指定并重新载入它的配置文件： 
+kill -SIGHUP `pidof inetd` 
+
+如果你想使用"xinetd",请参阅我们提供的范例 /EXAMPLE/INTERNET_SITE/README. 而其他范例文件将告诉你如何调配出更强大的xinetd功能。 
+
+6）为本地登录配置PAM文件（可选）
+如果你在一台激活了PAM的设备上运行VSFTPD，你需要提供一个 /etc/pam.d/ftp 文件。否则非匿名用户将无法登录服务器。
+（注：如果你的PAM版本比较老，那么这个文件也许是 /etc/pam.conf). 
+
+做为一个标准设置，你可以拷贝一个已提供的范例文件，如下： 
+cp RedHat/vsftpd.pam /etc/pam.d/ftp 
+
+7）自定义你的配置文件
+完成以上的配置后，建议你安装一个配置文件。默认的配置文件位置是/etc/vsftpd.conf. 在VSFTPD软件分发包内有一个范例配置文件。
+你可以拷贝其为/etc/vsftpd.conf以做进一步修改。 
+cp vsftpd.conf /etc 
+（daidong注：也可能是 cp vsftpd.conf /etc/vsftpd ). 
+
+这个默认配置即不容许本地登录也不容许匿名用户上传，也许你希望更改这个配置。
+其它 
+=================== 
+测试平台 （已通过） 
+-流行的，功能完善的平台都能测试通过。在以下平台的较新版本，VSFTPD工作得很好。在其大部分较早的版本下，也运行正常。 
+- RedHat Linux 
+- RedHat Enterprise Linux 
+- Solaris / GNU tools (Solaris 8 or newer) 
+- SuSE Linux 
+- Debian Linux 
+- OpenBSD 
+- FreeBSD 
+- NetBSD 
+- HP-UX / GNU tools 
+- IRIX / GNU tools 
+- Mac OS X (note; older versions have setgroups() problem. 10.3.4 reported OK) 
+虚拟用户1 
+============= 
+这个例子示范了如何为虚拟用户设置VSFTPD/PAM。
+虚拟用户是一个在系统中并不作为一个登录实体而存在的用户。使用虚拟用户比使用真实的用户更安全，因为这个账号只能用于FTP服务器。
+虚拟用户经常用来提供给不大可信任的用户访问某些资源，而这些资源通常是其他普通用户不能访问的。 
+
+1）创建虚拟用户数据库 
+我们将使用pam_userdb来认证虚拟用户。这需要提供一个“db"格式（一种通用数据库格式）的用户名/密码文件。
+创建一个"db"格式的文件，首先要创建一个标准文本文件，并把用户名，密码以竖直排列方式输入。如logins.txt： 
+tom 
+foo 
+fired 
+bar 
+这个例子中,tom用户的密码是foo.fired用户的密码是bar. 
+以ROOT登录，创建一个数据库文件，如下： 
+db_load -T -t hash -f logins.txt /etc/vsftpd_login.db 
+（这要求berkeley db程序已经安装） 
+(注：一些系统也许安装了多个版本的"db",所以某些情况下你可能使用"db3_load"才是正确的。对于一些 Debian系统就是这样。
+关键在于要让pam_userdb相信它的登录数据库是哪一个db版本所产生（一般都是db3，尽管你的系统里可能安装的是db4).）
+这将创建/etc/vsftpd_login.db文件。显然，你希望设定这个文件的权限： 
+chmod 600 /etc/vsftpd_login.db 
+
+要了解更多关于维护你的登录数据库的信息，请在"berkeley DB"察看相关文档： 
+http://www.sleepycat.com/docs/utility/index.html 
+
+2）用你的新数据库创建一个PAM文件 
+请参考范例vsftpd.pam，它包含2行： 
+auth required /lib/security/pam_userdb.so db=/etc/vsftpd_login 
+account required /lib/security/pam_userdb.so db=/etc/vsftpd_login 
+
+这是告诉PAM用新的数据库去验证用户。把这个PAM文件拷贝到PAM目录，一般是/etc/pam.d 
+cp vsftpd.pam /etc/pam.d/ftp 
+
+3)为虚拟用户设置home目录
+useradd -d /home/ftpsite virtual 
+ls -ld /home/ftpsite 
+(which should give): 
+drwx------ 3 virtual virtual 4096 Jul 30 00:39 /home/ftpsite 
+
+我们已经创建了一个名叫"virtual"的用户，home目录是"/home/ftpsite". 
+我们拷贝一些东西到这个下载目录： 
+cp /etc/hosts /home/ftpsite 
+chown virtual.virtual /home/ftpsite/hosts 
+
+4）创建你的vsftpd.conf配置文件
+请参考这个目录下的例子。让我们一行行地看一看这些配置： 
+anonymous_enable=NO 
+local_enable=YES 
+
+安全起见，屏蔽了匿名用户，只启用了非匿名用户（即虚拟用户使用的账号） 
+
+write_enable=NO 
+anon_upload_enable=NO 
+anon_mkdir_write_enable=NO 
+anon_other_write_enable=NO 
+
+为了安全请确认这几个配置，这将关闭写的权限。 
+
+chroot_local_user=YES 
+
+这将把虚拟用户锁定在我们在以上设置的/home/ftpsite目录内。 
+
+guest_enable=YES 
+guest_username=virtual 
+
+guest_enable非常重要-它激活了虚拟用户！而guest_username说明所有的虚拟用户都对应我们在上面设置的真实用户：“virtual". 
+这同时确定了虚拟用户在文件系统中的位置，也就是说，虚拟用户的home目录即"virtual"用户的home目录：/home/ftpsite。 
+
+listen=YES 
+listen_port=10021 
+
+这让VSFTPD以独立模式(standalone)运行，而不是从inetd方式启动。也就是说，你运行VSFTPD可执行文件就启动了FTP服务。
+同时也让VSFTPD启用非标准端口10021来监听FTP请求（FTP一般使用21端口）。 
+
+pasv_min_port=30000 
+pasv_max_port=30999 
+
+这设定了被动模式的FTP请求端口。当你配置了一个防火墙的时候，这个配置就很好用。
+拷贝范例配置文件到/etc 
+cp vsftpd.conf /etc/ 
+(daidong注：也可能是/etc/vsftpd) 
+
+5)启动VSFTPD 
+到VSFTPD二进制文件所在的目录，输入： 
+./vsftpd 
+
+如果一切正常，这个命令将生效。否则，你将会看到一些错误信息的反馈。 
+
+6）测试
+启动另一个会话。（或者ctrl-z，再输入"bg",让VSFTPD在后台运行）。
+这是一个FTP会话的例子： 
+
+ftp localhost 10021 
+Connected to localhost (127.0.0.1). 
+220 ready, dude (vsFTPd 1.1.0: beat me, break me) 
+Name (localhost:chris): tom 
+331 Please specify the password. 
+Password: 
+230 Login successful. Have fun. 
+Remote system type is UNIX. 
+Using binary mode to transfer files. 
+ftp> pwd 
+257 "/" 
+ftp> ls 
+227 Entering Passive Mode (127,0,0,1,117,135) 
+150 Here comes the directory listing. 
+226 Transfer done (but failed to open directory). 
+ftp> size hosts 
+213 147 
+ftp> 
+
+注释：
+密码是"foo" 
+出现”failed to open directory“的话，别担心。这是因为/home/ftpsite目录不容许被任意浏览。
+（我们可以更改anon_world_readable_only=NO以消除告警，但为了安全，还是保留这个配置）。
+我们能通过size命令看到我们已经访问了被我们拷贝到这里的"hosts"文件。 
+
+vsftpd.conf 
+anonymous_enable=NO 
+local_enable=YES 
+write_enable=NO 
+anon_upload_enable=NO 
+anon_mkdir_write_enable=NO 
+anon_other_write_enable=NO 
+chroot_local_user=YES 
+guest_enable=YES 
+guest_username=virtual 
+listen=YES 
+listen_port=10021 
+pasv_min_port=30000 
+pasv_max_port=30999 
+虚拟用户2 
+=============== 
+这个例子将演示如何扩展“VIRTUAL_USERS”那个范例，从而实现更复杂一点的配置。
+让我们假定我们需要2种不同的虚拟用户：一种只能浏览并下载资源，另一种能上传文件并浏览站内资源。
+要激活这个设置，我们将使用VSFTPD的强大的“单个用户配置”功能（是V1.1.0后出现的新功能）。
+在前一个虚拟用户范例中，我们创建了2个用户-tom和fred. 
+我们将实现fred有写权限以上传新文件，同时tom只能下载文件。 
+
+1）激活单个用户配置功能。
+要激活这个功能，需要增加以下配置行到配置文件： 
+
+user_config_dir=/etc/vsftpd_user_conf 
+
+并且创建目录： 
+
+mkdir /etc/vsftpd_user_conf 
+
+2）授予tom读取所有文件和目录的权限
+在上一个例子的最后，我们注意到虚拟用户只能浏览所有的完全可读属性的目录和文件。我们使/home/ftpsite完全可读，而且被上传的文件也
+赋予了完全可读的权限（daidong注：意思是说这样虚拟用户就能读取所有的文件了）。但实现这个目的的另一个方法是授权tom能下载那些非完全可读的文件。
+对于tom,他的配置文件中需要修改一个设置： 
+anon_world_readable_only: 
+
+设为"anon_world_readable_only=NO" > /etc/vsftpd_user_conf/tom 
+(daidong注：既把默认配置修改了anon_world_readable_only后，复制到/etc/vsftpd_user_conf下，名字为tom) 
+
+验证一下结果-以tom登录，“ls”将返回一个目录列表。如果以fred登录将不会如此。
+注意：重启VSFTPD以启用配置文件/etc/vsftpd.conf(高级用户也可以发送SIGHUP给VSFTPD的监听进程). 
+
+3)授予freg读取所有文件/目录并创建新文件/目录的权限,但让他不能对已存在的文件/目录进行操作. 
+
+echo "anon_world_readable_only=NO" > /etc/vsftpd_user_conf/fred 
+echo "write_enable=YES" >> /etc/vsftpd_user_conf/fred 
+echo "anon_upload_enable=YES" >> /etc/vsftpd_user_conf/fred 
+
+验证一下-以tom登录,将不能上传,而fred就可以. 
+试图删除一个文件--噢,你们俩都不行!

@@ -1,0 +1,36 @@
+[mysqld_multi]
+mysqld = /usr/bin/mysqld_safe
+mysqladmin = /usr/bin/mysqladmin
+user = root
+
+[mysqld3311]
+socket = /tmp/mysql_3311.sock
+port = 3311
+bind-address = 0.0.0.0
+pid-file = /data/mysql3311/mysql_3311.pid
+datadir = /data/mysql3311
+user = mysql
+
+[mysqld3312]
+socket = /tmp/mysql_3312.sock
+port = 3312
+bind-address = 0.0.0.0
+pid-file = /data/mysql3312/mysql_3312.pid
+datadir = /data/mysql3312
+user = mysql
+
+[mysqld3313]
+socket = /tmp/mysql_3313.sock
+port = 3313
+bind-address = 0.0.0.0
+pid-file = /data/mysql3312/mysql_3313.pid
+datadir = /data/mysql3313
+user = mysql
+
+[mysqld3314]
+socket = /tmp/mysql_3314.sock
+port = 3314
+bind-address = 0.0.0.0
+pid-file = /data/mysql3314/mysql_3314.pid
+datadir = /data/mysql3314
+user = mysql

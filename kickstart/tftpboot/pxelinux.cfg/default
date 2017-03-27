@@ -1,0 +1,28 @@
+default auto
+
+prompt 1
+
+timeout 10
+
+ 
+
+label linux
+
+  kernel vmlinuz
+
+  append initrd=initrd.img
+
+label auto
+
+  menu default
+
+  kernel vmlinuz
+
+  append ksdevice=em1 ks=ftp://10.0.2.251/ks.cfg initrd=initrd.img
+
+label rescue
+
+  kernel vmlinuz
+
+  append initrd=initrd.img rescue
+

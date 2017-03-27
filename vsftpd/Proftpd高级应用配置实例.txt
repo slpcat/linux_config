@@ -1,0 +1,304 @@
+(一)Proftpd实现虚拟用户和quota(不用数据库)和限速
+
+需求：
+（要保障FTP服务器的安全，特要求如下：
+1、系统要求LINUX或UNIX。
+2、虚拟用户，不能是系统用户。
+3、可以限制上传，下载速度。
+4、可以限制迅雷多线程下载。
+5、可以限制用户目录大小，以及上传文件大小等。）
+
+下面开始安装配置proftpd
+
+# wget ftp://ftp.proftpd.org/distrib/source/proftpd-1.3.2.tar.gz
+# tar zxvf proftpd-1.3.2
+# cd proftpd-1.3.2
+# ./configure --prefix=/usr/local/proftpd --with-modules=mod_quotatab:mod_quotatab_file
+# make
+# make install
+# cp contrib/ftpasswd /usr/local/proftpd/bin/
+# cp contrib/ftpquota /usr/local/proftpd/bin/
+# vi /usr/local/proftpd/etc/proftpd.conf
+ServerName                        "mz16.cn Ftp System"
+ServerType                        standalone
+DefaultServer                        on
+Port                                21
+# Don't use IPv6 support by default.
+UseIPv6                                off
+Umask                                022
+# To prevent DoS attacks, set the maximum number of child processes
+# to 30. If you need to allow more than 30 concurrent connections
+# at once, simply increase this value. Note that this ONLY works
+# in standalone mode, in inetd mode you should use an inetd server
+# that allows you to limit maximum number of processes per service
+# (such as xinetd).
+MaxInstances                        30
+
+#限制连接数
+MaxClients 10 "最大允许10个用户同时访问"
+
+MaxHostsPerUser 1 #每个帐户最多允许来源ip为1个, 对防止ftp帐号还是比较有用的。
+
+MaxClientsPerUser 1 #每个帐户在每个客户端最多可以同时登陆1次,可以防止多线程软件下载对服务器的破坏。（用迅雷下载，线程只能限定为1个。）
+
+MaxClientsPerHost 1 #同一个客户端只能最多1个帐号可以登陆
+
+# 不显示服务器相关信息, 如proftpd版本
+ServerIdent          off UseReverseDNS      off
+
+User                                nobody
+Group                        nobody
+
+# To cause every FTP user to be "jailed" (chrooted) into their home
+# directory, uncomment this line.
+DefaultRoot ~       # 把用户锁定在自己的目录下，根目录无法访问。
+
+# Normally, we want files to be overwriteable.
+
+AllowOverwrite                on        #设置文件可以被覆盖
+AllowForeignAddress     on      # 支持FXP
+PassivePorts   49152 65534       # 支持被动模式
+AllowRetrieveRestart on           # 允许下载续传，默认即开启
+AllowStoreRestart on              # 允许上载续传
+RequireValidShell off   # 不要求有合法shell，直接效果是允许nologin用户和虚拟用户登录
+AuthOrder mod_auth_file.c mod_auth_unix.c
+AuthUserFile /usr/local/proftpd/etc/passwd 
+TransferRate STOR 150 user tom    # 限制tom用户上传的速率限制在150Kbytes/s
+TransferRate RETR 100 user tom    # 限制tom用户下载的速率限制在100Kbytes/s
+# Using a file-based limit table
+QuotaLimitTable file:/usr/local/proftpd/etc/ftpquota.limittab
+# Using a file-based tally table
+QuotaTallyTable file:/usr/local/proftpd/etc/ftpquota.tallytab
+QuotaDirectoryTally on
+QuotaDisplayUnits Mb        # 显示以MB为单位
+QuotaEngine on
+QuotaLog /usr/local/proftpd/etc/Quota.log
+QuotaShowQuotas on
+#QuotaOptions ScanOnLogin    # 这个选项如果去掉注释，会先扫描用户目录的大小，比如用户目录限定为50M，已经使用了18M，那么只能上传小于32M的文件，否则会失败。如果加上这个选项，会忽略掉用户目录大小，上传只要小于50M，都可以上传。建议注释这条选项。
+
+# Bar use of SITE CHMOD by default
+<Limit SITE_CHMOD>
+AllowAll
+</Limit>
+
+<Directory /opt/tom/>
+<Limit write>
+AllowUser tom
+DenyALL 
+</Limit>
+</Directory>
+
+# A basic anonymous configuration, no upload directories. If you do not
+# want anonymous users, simply delete this entire <Anonymous> section.
+#<Anonymous ~ftp>
+# User                                ftp
+# Group                                ftp # # We want clients to be able to login with "anonymous" as well as "ftp"
+# UserAlias                        anonymous ftp # Limit the maximum number of anonymous logins
+# MaxClients                        10
+
+# We want 'welcome.msg' displayed at login, and '.message' displayed
+# in each newly chdired directory.
+# DisplayLogin                        welcome.msg
+# DisplayChdir                        .message
+
+# Limit WRITE everywhere in the anonymous chroot
+# <Limit WRITE>
+#    DenyAll
+# </Limit>
+#</Anonymous>
+
+# 创建虚拟用户
+# /usr/local/proftpd/bin/ftpasswd --passwd --name=tom --uid=99 --gid=99 --home=/opt/tom/ --shell=/sbin/nologin --file=/usr/local/proftpd/etc/passwd Password: <new password>
+Re-type password: <new password>
+
+之后会自动生成/usr/local/proftpd/etc/passwd
+
+# chmod -R 777 /opt/tom
+要注意，因为虚拟用户并不在本地系统用户中存在，所以要设置虚拟用户可以访问的所有目录都允许其它用户写，这样才能保证虚拟用户正常增删文件。
+
+# cd /usr/local/proftpd/bin/
+# ftpquota -create -type=tally -table-path=/usr/local/proftpd/etc/ftpquota.tallytab
+# ftpquota -create -type=limit -table-path=/usr/local/proftpd/etc/ftpquota.limittab
+# ftpquota --type=limit --table-path=/usr/local/proftpd/etc/ftpquota.limittab --add-record --quota-type=user --name=tom --units=Mb --bytes-upload=50 --bytes-xfer=1
+
+# （上面意思是：限定tom用户空间大小为50M，上传文件大小为1M）
+
+ftpquota 具体用法参照 ftpquota --help即可。
+
+这样都设置完了以后
+启动proftpd
+再ftp上去的时候
+用命令site quota就可以看当前用户的quota信息
+
+如图所示：
+
+或者
+
+常用全局设置：
+
+　　DefaultRoot ~ # 限制每个FTP用户在自己的目录下，不可查看上一级目录
+
+　　AllowRetrieveRestart on #下载时，允许断点续传
+
+　　AllowStoreRestart on #上传时，允许断点续传
+
+　　ServerIdent off #屏蔽服务器版本信息
+
+　　TransferRate STOR　RETR 速度（Kbytes/s） user 使用者 #设定用户传输速率
+
+　　MaxHostsPerUser 1 #每个帐户最多允许来源ip为1个, 对防止ftp帐号还是比较有用的。
+
+　　MaxClientsPerUser 1 #每个帐户在每个客户端最多可以同时登陆1次,可以防止多线程软件下载对服务器的破坏。
+
+　　MaxClientsPerHost 1 #同一个客户端只能最多1个帐号可以登陆
+
+　　WtmpLog on #是否要把ftp记录在日志中，如果不想可以设置成off屏蔽掉log日志。
+
+　　TimeoutIdle 600 #客户端idle时间设置，默认就是600秒
+
+　　DisplayLogin welcome.msg #设置ftp登陆欢迎信息文件
+
+RootLogin on #允许root用户登录，默认是不允许的，安全起见不推荐此选项。
+
+Iptables防火墙设置：
+
+/etc/init.d/iptables stop
+iptables -P INPUT DROP
+# 打开主动模式21端口
+iptables -A INPUT -p tcp --dport 21 -j ACCEPT
+# 打开被动模式49152~65534之间的端口
+iptables -A INPUT -p tcp --dport 49152:65534 -j ACCEPT
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
+
+(二)
+
+用proftpd都好几年了，费劲地终于明白了那个配置文件地使用，但是一直懒得不想doc it。终于，“出来混，迟早是要还的”，这两天被迫补作业，顺便便宜了blog。:P
+
+linux的ftp的用户帐号，默认的是系统帐号，即一台开放了ftp服务的机器，如果要使用它的ftp，就要在主机上创建一个帐号。比如HostA上架了ftp server，tom和bob两个人都希望用，那么要在HostA上useradd tom, useradd bob。这样的副作用是tom，bob两个帐号还可以登录到系统（本机登录或者ssh）。
+
+这种做法是linux（unix）的传统做法。但是习惯了Windows下ServU的独立ftp帐号管理，发现仅仅为了一个ftp服务，要开放系统的登录权限，除去过去的ServU的使用习惯不说，也给系统安全带来隐患。
+
+proftpd支持为ftp服务单独设立帐号管理文件。做法是用源码版中的contrib/ftpasswd生成两个类似linux系统的passwd和group文件，在proftpd的配置文件proftpd.conf中指定采用文件认证的方式（使用AuthOrder指令）并指定这两个文件（AuthUserFile和AuthGroupFile两个指令）。
+
+下面是一个具体的配置的ftp的例子，包括linux系统帐号设计以及详细的proftpd的配置说明。
+
+ftp的目标： 上传目录仅能上传（对up帐号），不能用来下载；
+下载目录仅能下载（对down帐号），不能用此帐号写入或删除等； 有一个（fileman）或多个管理员帐号，可以对上传、下载目录文件进行管理（读、写、删除等）；
+所有这些帐号都是ftp使用的，这些帐号不能用来登录linux主机。
+
+系统帐号设计
+设置ftpman这一系统帐号，经过ftp上传的文件都属于这个系统帐号所有；
+设置ftpman这个组，系统内的proftpd、ftpman以及主机管理员的帐号都加成这个组的成员；
+（rh9下，useradd ftpman就会有ftpman这个组也被建立）
+ftpman组的文件的组权限都给到写，即同组的可以读写（775或664）；
+ftpman这个系统帐号在proftpd的帐号管理文件中映射成为多个帐号，包括up、down以及其他ftp管理员的管理帐号比如fileman等
+
+ftp目录
+/home/ftpman
+/home/ftpman/download
+/home/ftpman/upload
+
+ftp帐号管理文件
+ftpasswd生成的ftpd.passwd和ftpd.group大致如下：
+系统中的帐号ftpman和组ftpman都是502
+
+ftpd.passwd:
+up:PASSWD_FOR_UP:502:502::/home/ftpman/upload:/bin/false
+down:PASSWD_FOR_DOWN:502:502::/home/ftpman/download:/bin/false
+fileman:PASSWD_FOR_FILEMAN:502:502::/home/ftpman:/bin/false
+
+ftpd.group:
+ftpman:x:502:up,down,fileman
+proftpd的安装就不说了，./configure, make, make install就好了
+以下是proftpd的配置文件，具体每个配置参数的作用参考
+http://www.proftpd.org/docs/directives/configuration_full.html
+另外说明一点是偶把proftpd安装到了/usr/local/proftpd位置
+
+# 设置ServerName
+ServerName                              "SYVOD FTP"
+# 用作默认Server
+DefaultServer                           on
+# Server类型，设为独立的进程，对vod来说更合适
+ServerType                              standalone Port                                    21 Umask                                   0002 0002
+# standlone型服务器的最多派生的子进程个数
+MaxInstances                            60
+# server进程的user
+User                                    proftpd
+# server进程的group
+Group                                   proftpd
+# 设置chroot的目录，设为帐号的home-directory
+DefaultRoot                             ~
+# 关掉默认显示server版本等信息的功能,增加安全
+ServerIdent                             off AuthOrder                               mod_auth_file.c mod_auth_unix.c
+# 指定文件认证的passwd文件
+AuthUserFile    /usr/local/proftpd/etc/ftpd.passwd
+# 指定文件认证的group文件
+AuthGroupFile   /usr/local/proftpd/etc/ftpd.group
+# 设置每秒接受的链接请求个数，防止DoS攻击
+MaxConnectionRate                       4
+# 最大的连接上的client的数量
+MaxClients                              60 "Sorry,the maximum number of allowed users (%m) are already connected. "
+# 每个client主机最多的连接数
+MaxClientsPerHost                       1 "Sorry, you may not connect more than one time."
+# 每个认证帐号的最多连接个数，即同一帐号（比如up）并存的数量
+MaxClientsPerUser                       30 "Sorry,the maximum number of allowed users (%m) for this account are already connected. " MaxStoreFileSize                        2 Gb
+# 关闭反向查询client的用户名的操作（RFC1413），加快连接速度
+IdentLookups                            off
+# 关闭DNS的反向查询（同样为了加快响应速度）
+UseReverseDNS                           off
+# 自动删除未传完（aborted）的上传文件
+DeleteAbortedStores                     on DirFakeUser                             on DirFakeGroup                            on DirFakeMode                             0600
+# 认证帐号不需要有有效的shell
+RequireValidShell                       off
+# 空闲300sec断开连接
+TimeoutIdle                             300
+# 登录时显示欢迎信息存放在帐号home-directory/.welcome里
+DisplayLogin                            .welcome
+# 限制登录权限仅为myftp组
+<Limit Login>
+        Order                           deny,allow
+        AllowGroup                      ftpman
+</Limit>
+# 设置/home/ftpman/download的使用权限
+<Directory /home/ftpman/download>         HideNoAccess                on
+        # 限制down帐号的下载速度为300K/sec，对于小于10K的文件不限制
+        TransferRate               RETR 300:10240 user down         <Limit WRITE>
+                Order                   deny,allow
+                AllowUser               fileman
+        </Limit>
+</Directory>
+# 设置/home/ftpman/upload的使用权限
+<Directory /home/ftpman/upload>         HideNoAccess             on
+        # 限制up帐号的上传速度为500K/sec，对于小于10K的文件不限制
+        TransferRate             APPE,STOR 500:10240 user up         AllowStoreRestart               on
+        # 限制upload目录的下载等权限，不要让ftp成为别人的中转站
+        <Limit READ REST DELE RNFR RNTO RMD XRMD CHMOD CHGRP>
+                Order                   deny,allow
+                AllowUser               fileman
+        </Limit>
+</Directory>
+
+关于"TransferRate"
+
+启动时Proftpd时,出下列两种错误
+
+- Fatal: MaxStoreFileSize: incorrect number of parameters on line 98 of '/etc/proftpd.conf'
+
+- Fatal: MaxStoreFileSize: number of bytes must be between 0 and 4294967295
+
+原来,这个值必须小于4294967295.可以用 * 表示无限制，并且不能针对某个用户设定为无限。
+
+# 限制上传只能上传3mb
+
+MaxStoreFileSize 3 Mb
+
+# Restrict anonymous uploads to 50k, but allow unlimited upload size for
+
+# everyone else
+
+MaxStoreFileSize 50 Kb user anonymous
+
+MaxStoreFileSize *  
+
+MaxStoreFileSize * user andy ?不能针对某个用户设定为无限，所以这样设定将出错。
