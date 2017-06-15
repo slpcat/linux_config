@@ -4,8 +4,7 @@
 
 [remi-safe]
 name=Safe Remi's RPM repository for Enterprise Linux 6 - $basearch
-#baseurl=ftp://rpms.remirepo.net/enterprise/6/safe/$basearch/
-mirrorlist=ftp://rpms.remirepo.net/enterprise/6/safe/mirror
+baseurl=http://rpms.remirepo.net/enterprise/6/safe/$basearch/
+#mirrorlist=http://rpms.remirepo.net/enterprise/6/safe/mirror
 enabled=0
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-remi
+gpgcheck=0
