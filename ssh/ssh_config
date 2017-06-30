@@ -1,4 +1,3 @@
-#	$OpenBSD: ssh_config,v 1.28 2013/09/16 11:35:43 sthen Exp $
 
 # This is the ssh client system-wide configuration file.  See
 # ssh_config(5) for more information.  This file provides defaults for
@@ -17,9 +16,10 @@
 # list of available options, their meanings and defaults, please see the
 # ssh_config(5) man page.
 
-# Host *
+Host *
 #   ForwardAgent no
 #   ForwardX11 no
+#   ForwardX11Trusted yes
 #   RhostsRSAAuthentication no
 #   RSAAuthentication yes
 #   PasswordAuthentication yes
@@ -48,25 +48,13 @@
 #   VisualHostKey no
 #   ProxyCommand ssh -q -W %h:%p gateway.example.com
 #   RekeyLimit 1G 1h
-#
-# Uncomment this if you want to use .local domain
-# Host *.local
-#   CheckHostIP no
-
-Host *
-	GSSAPIAuthentication yes
-# If this option is set to yes then remote X11 clients will have full access
-# to the original X11 display. As virtually no X11 client supports the untrusted
-# mode correctly we set this to yes.
-	ForwardX11Trusted yes
-# Send locale-related environment variables
-	SendEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
-	SendEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
-	SendEnv LC_IDENTIFICATION LC_ALL LANGUAGE
-	SendEnv XMODIFIERS
-HashKnownHosts yes
+    SendEnv LANG LC_*
+    HashKnownHosts yes
+    GSSAPIAuthentication yes
+    GSSAPIDelegateCredentials no
+Compression no
 ServerAliveInterval 60
-ServerAliveCountMax 5
+ServerAliveCountMax 2
 ControlMaster auto
 ControlPath /tmp/ssh_mux_%h_%p_%r
 ControlPersist 1h

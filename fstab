@@ -1,0 +1,17 @@
+# /etc/fstab: static file system information.
+#
+# <file sys>	<mount point>	<type>	<options>	<dump>	<pass>
+
+# device during installation: /dev/vda1
+UUID=f64475a4-e690-4046-b799-d668c1001583	/	ext4	rw,noatime,nobarrier,errors=remount-ro	0	1
+
+# device during installation: /dev/vda7
+UUID=e93d9214-e7bb-4213-8215-6c628f283488	/data	ext4	rw,noatime,nobarrier,nosuid,nodev,noexec	0	2
+
+# device during installation: /dev/vda6
+UUID=0d8b4b68-3b59-464e-855a-ebbb75565d61	/tmp	ext4	rw,noatime,nobarrier,nosuid,nodev	0	2
+
+# device during installation: /dev/vda5
+UUID=440a7b7f-4c9a-4f8a-a4dd-8f514baaf673	none	swap	sw	0	0
+/dev/sr0        /media/cdrom0   udf,iso9660 ro,user,noauto  0       0
+proc    /proc    proc    defaults,hidepid=2     0     0
