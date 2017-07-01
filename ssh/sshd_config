@@ -92,4 +92,4 @@ Compression no
 MaxAuthTries 5
 AllowTcpForwarding no
 UseDNS no
-DebianBanner no
+#DebianBanner no
